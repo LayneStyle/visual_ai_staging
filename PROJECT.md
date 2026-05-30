@@ -106,18 +106,44 @@ The staging interface utilizes premium visual styles, a modern dark-themed schem
 
 ---
 
-## 4. Milestones Roadmap
+## 4. Milestones & Roadmap
 
-The implementation is tracked against the following milestone schedule:
+The development of **Visual AI Staging** is structured in three major phases. The schedule and current status of each milestone are detailed below:
+
+### Phase 1: Web Engine & Sandbox (100% DONE)
+All core web elements and visual sandbox features have been successfully developed, integrated, and verified:
 
 | Milestone ID | Title | Status | Description |
 | :--- | :--- | :--- | :--- |
 | **Milestone 1** | Setup & Initialization | **DONE** | Directories created; PROJECT.md structured; design system declared. |
-| **Milestone 2** | R1 Sandbox Visual Interactiva | *PLANNED* | DOM Mock Page, lateral panel sliders, styles staging, and real-time DOM overrides. |
-| **Milestone 3** | R2 Lienzo de Bounding Box Vectorial | *PLANNED* | SVG/Canvas drawing overlay, spatial calculations, and nearest parent anchoring. |
-| **Milestone 4** | R3 Grabador de Audio y Badges | *PLANNED* | Micro-recording system, file references in `.ai-staging/audio`, and DOM indicator badges. |
-| **Milestone 5** | R4 Compilador de Prompts y Copiado | *PLANNED* | Generating structured Markdown recipes, system pre-prompt compiler, and copy utilities. |
-| **Milestone 6** | Final Review & Quality Integration | *PLANNED* | End-to-end flow checks, floating FAB integration, and quality assurance audit reports. |
+| **Milestone 2** | R1 Sandbox Visual Interactiva | **DONE** | DOM Mock Page, lateral panel sliders, styles staging, and real-time DOM overrides. |
+| **Milestone 3** | R2 Lienzo de Bounding Box Vectorial | **DONE** | SVG/Canvas drawing overlay, spatial calculations, and nearest parent anchoring. |
+| **Milestone 4** | R3 Grabador de Audio y Badges | **DONE** | Micro-recording system, file references in `.ai-staging/audio`, and DOM indicator badges. |
+| **Milestone 5** | R4 Compilador de Prompts y Copiado | **DONE** | Generating structured Markdown recipes, system pre-prompt compiler, and copy utilities. |
+| **Milestone 6** | Final Review & Quality Integration | **DONE** | End-to-end flow checks, floating FAB integration, and quality assurance audit reports. |
+
+---
+
+### Phase 2: Local CLI Companion & Voice Transcription (PLANNED)
+*Goal: Bridge the Sandbox UI with the physical filesystem and enable real-time audio transcription.*
+
+| Milestone ID | Title | Status | Target Timeline / Stage | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Milestone 7** | CLI Daemon setup (`vais dev`) | *PLANNED* | Phase 2 - Stage 1 | Implement Node.js CLI to run local daemon and open a hot WebSocket communication channel. |
+| **Milestone 8** | Hot File Persistence | *PLANNED* | Phase 2 - Stage 2 | Replace browser manual downloads with automated physical writes to local `.ai-staging/audio/` and `.ai-staging/feedback/`. |
+| **Milestone 9** | Whisper Voice Transcription | *PLANNED* | Phase 2 - Stage 3 | Integrate local Whisper API or OS native dictation APIs to convert speech recording to plain text inside prompt recipes. |
+| **Milestone 10** | Active Sessions Register | *PLANNED* | Phase 2 - Stage 4 | Write to central `~/.vais/active_sessions.json` to allow multi-repo resolution based on browser port matching. |
+
+---
+
+### Phase 3: WebExtension Packaging & AST Patching (PLANNED)
+*Goal: Turn the sandbox into a real browser extension and automate source code modifications.*
+
+| Milestone ID | Title | Status | Target Timeline / Stage | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Milestone 11** | Manifest V3 Packaging | *PLANNED* | Phase 3 - Stage 1 | Create WebExtension structures (manifest.json, background workers) to load the Staging Panel on any local/remote tab. |
+| **Milestone 12** | AST Parser Integration | *PLANNED* | Phase 3 - Stage 2 | Build local AST-based parser to read prompt recipes, find physical `.jsx` / `.vue` / `.css` components, and generate automatic Git diffs. |
+| **Milestone 13** | Visual Regression Overlay | *PLANNED* | Phase 3 - Stage 3 | Overlay original staging outlines on the post-patched actual DOM to visually verify design pixel alignment. |
 
 ---
 
