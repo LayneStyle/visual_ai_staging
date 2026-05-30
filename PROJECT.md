@@ -142,8 +142,9 @@ All core web elements and visual sandbox features have been successfully develop
 | Milestone ID | Title | Status | Target Timeline / Stage | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **Milestone 11** | Manifest V3 Packaging | *PLANNED* | Phase 3 - Stage 1 | Create WebExtension structures (manifest.json, background workers) to load the Staging Panel on any local/remote tab. |
-| **Milestone 12** | AST Parser Integration | *PLANNED* | Phase 3 - Stage 2 | Build local AST-based parser to read prompt recipes, find physical `.jsx` / `.vue` / `.css` components, and generate automatic Git diffs. |
-| **Milestone 13** | Visual Regression Overlay | *PLANNED* | Phase 3 - Stage 3 | Overlay original staging outlines on the post-patched actual DOM to visually verify design pixel alignment. |
+| **Milestone 12** | AST Parser & Zero-LLM Direct Path | *PLANNED* | Phase 3 - Stage 2 | Build local AST parser and Zero-LLM Direct Path to let developers apply visual slider changes instantly to physical files without IA. |
+| **Milestone 13** | AI-Assisted AST Mod (Diffs) | *PLANNED* | Phase 3 - Stage 3 | Inject complex design modifications and raw component drawings through AI-generated Git diff proposals. |
+| **Milestone 14** | Visual Regression Overlay | *PLANNED* | Phase 3 - Stage 4 | Overlay original staging outlines on the post-patched actual DOM to visually verify design pixel alignment. |
 
 ---
 

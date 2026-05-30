@@ -132,8 +132,12 @@ De acuerdo con el diseño de arquitectura unificado para la aplicación, se estr
         *   Convertir la base de código del sandbox en una extensión real instalable para Google Chrome y Brave.
         *   Estructurar el manifiesto `manifest.json` y habilitar `content_scripts` para poder inyectar la barra lateral de Staging en *cualquier* sitio web local (`localhost`) o en producción para "Modo Inspiración".
     2.  **Compilador AST (Abstract Syntax Tree) Local**:
-        *   Construir un motor analizador en la CLI `vais dev` que analice la receta en Markdown recibida.
+        *   Construir un motor analizador en la CLI `vais dev` que analice la receta en Markdown recibida o los payloads estructurados directos.
         *   Utilizando parsers de AST (como Babel, PostCSS o compiladores JSX/Vue), localizar los archivos fuente físicos originales del proyecto (ej. `Header.jsx` o `feature-card.css`) asociados al selector CSS de staging modificado.
-        *   Reemplazar las declaraciones físicas de estilos o texto y proponer un parche (diff Git) automático local para que el desarrollador pueda aprobar los cambios en el código real con un solo clic.
-    3.  **Validador de Desviaciones Visuales**:
+    3.  **Zero-LLM Direct Path (Ruta de Aplicación Directa)**:
+        *   Implementar un canal de modificación determinista inmediato. Si el desarrollador altera exclusivamente parámetros de dimensiones o estilos mapeados a tokens de diseño, el motor local inyectará los cambios a través del compilador AST directamente en el archivo correspondiente del repositorio sin llamadas externas ni consumo de modelos de IA (Zero-LLM).
+        *   Ofrecer al desarrollador una previsualización de diferencias local rápida y un botón de "Aplicar en Caliente" inmediato en el panel lateral de staging.
+    4.  **Generación de Parches por IA (AI-Assisted AST Mod)**:
+        *   Para cambios lógicos o inserciones de componentes en zonas libres que requieran inteligencia semántica, inyectar el código generado por el agente LLM a través de una propuesta de parche de Git (diff) precisa sobre el código fuente local.
+    5.  **Validador de Desviaciones Visuales**:
         *   Proyectar en el viewport del navegador los contornos y dimensiones ideales recopilados en la sesión de staging superpuestos sobre el DOM resultante después de aplicar los cambios en el código físico, reportando desviaciones de diseño en píxeles.
