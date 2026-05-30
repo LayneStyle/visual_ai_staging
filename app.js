@@ -550,8 +550,8 @@ function undockPanel() {
   // Toggle undock action label inside floating panel
   const undockBtn = doc.getElementById('btn-undock-panel');
   if (undockBtn) {
-    undockBtn.innerHTML = '<span>📥</span> Acoplar';
-    undockBtn.title = 'Acoplar panel de vuelta';
+    undockBtn.innerHTML = '<span>📥</span> Dock';
+    undockBtn.title = 'Dock panel back';
   }
 
   // Setup dynamic interactive event bindings inside popup context
@@ -570,7 +570,7 @@ function undockPanel() {
   // Update parent button state indicator
   const parentUndockBtn = document.getElementById('btn-undock-panel');
   if (parentUndockBtn) {
-    parentUndockBtn.innerHTML = '<span>📥</span> Acoplado';
+    parentUndockBtn.innerHTML = '<span>📥</span> Docked';
     parentUndockBtn.disabled = true;
   }
 }
@@ -596,7 +596,7 @@ function dockPanel() {
 
   const parentUndockBtn = document.getElementById('btn-undock-panel');
   if (parentUndockBtn) {
-    parentUndockBtn.innerHTML = '<span>↗️</span> Desacoplar';
+    parentUndockBtn.innerHTML = '<span>↗️</span> Undock';
     parentUndockBtn.disabled = false;
   }
 
@@ -1982,7 +1982,7 @@ DETALLE DE MODIFICACIONES REQUERIDAS (ELEMENT VISUAL STAGING)
   let insertionsCount = 0;
   let insertionsText = `
 =========================================
-DETALLE DE COMPONENTES A INSERTAR (SPATIAL ANNOTATIONS)
+SPATIAL ANNOTATIONS & INSERTS DETAILS
 =========================================
 `;
 
@@ -1992,11 +1992,11 @@ DETALLE DE COMPONENTES A INSERTAR (SPATIAL ANNOTATIONS)
       const hasVoiceNote = !!changeData.voiceNote;
       
       insertionsText += `
-### Inserción #${changeData.boxId}: ${changeData.template}
+### Insertion #${changeData.boxId}: ${changeData.template}
 - **Preset Type**: ${changeData.template}
 - **Resolved Nearest Parent Container Selector**: \`${changeData.parentSelector}\`
-- **Ubicación Bounding Box (relativa al lienzo)**: x: ${Math.round(changeData.x)}px, y: ${Math.round(changeData.y)}px, ancho: ${Math.round(changeData.width)}px, alto: ${Math.round(changeData.height)}px
-- **Developer Notes**: ${changeData.notes || 'Modificación espacial y zona de componente agregada mediante el Sandbox de Bounding Boxes.'}
+- **Bounding Box Position (relative to canvas)**: x: ${Math.round(changeData.x)}px, y: ${Math.round(changeData.y)}px, width: ${Math.round(changeData.width)}px, height: ${Math.round(changeData.height)}px
+- **Developer Notes**: ${changeData.notes || 'Spatial annotation and layout modification defined via the Bounding Box canvas.'}
 `;
       if (hasVoiceNote) {
         insertionsText += `- **Voice Note File Reference**:
@@ -2236,7 +2236,7 @@ function openDrawingModal(x, y, width, height, parentSelector) {
     selectorDisplay.textContent = parentSelector;
   }
   if (selectPreset) {
-    selectPreset.value = 'Carrusel de imágenes';
+    selectPreset.value = 'Carousel Slider';
   }
   if (notesTextarea) {
     notesTextarea.value = '';
@@ -2267,7 +2267,7 @@ function confirmDrawingInsertion() {
   const selectPreset = document.getElementById('modal-template-select');
   const notesTextarea = document.getElementById('modal-notes-textarea');
   
-  const template = selectPreset ? selectPreset.value : 'Carrusel de imágenes';
+  const template = selectPreset ? selectPreset.value : 'Carousel Slider';
   const notes = notesTextarea ? notesTextarea.value : '';
   
   const boxId = nextBoxId++;

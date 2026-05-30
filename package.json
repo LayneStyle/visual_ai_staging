@@ -1,6 +1,6 @@
 {
   "name": "visual-ai-staging",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Visual AI Staging Companion — Bridge the gap between UI design staging and AI coding assistants.",
   "license": "MIT",
   "main": "app.js",
