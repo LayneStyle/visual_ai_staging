@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual AI Staging Companion - R1 Sandbox</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header Toolbar -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-icon">✨</span>
+      <h1>Visual AI Staging <span class="badge">Companion</span></h1>
+    </div>
+    <div class="toolbar-modes">
+      <button id="btn-inspect" class="toolbar-btn">
+        <span class="btn-icon">🔍</span> Inspection Mode
+      </button>
+      <button id="btn-drawing" class="toolbar-btn">
+        <span class="btn-icon">📐</span> Free-Zone Drawing
+      </button>
+    </div>
+    <div class="header-meta">
+      <span class="status-indicator active"></span>
+      <span class="status-text">Local Dev Node Connected</span>
+    </div>
+  </header>
+
+  <!-- Split Layout Container -->
+  <main class="app-layout">
+    <!-- Left Column: DOM Mock Page Container -->
+    <section class="mock-page-container">
+      <div class="panel-header">
+        <span class="panel-title">DOM Mock Page (Sandbox Target)</span>
+        <div class="viewport-controls">
+          <span class="size-pill">100% Desktop Viewport</span>
+        </div>
+      </div>
+      
+      <!-- Realistic Mock Page Content -->
+      <div id="mock-page">
+        <!-- Transparent Drawing Overlay -->
+        <svg id="canvas-overlay"></svg>
+
+        <!-- Hero Section -->
+        <header class="mock-hero">
+          <nav class="mock-nav">
+            <div class="mock-logo">QuantumLabs</div>
+            <div class="mock-nav-links">
+              <a href="#" class="mock-nav-link">Features</a>
+              <a href="#" class="mock-nav-link">Pricing</a>
+              <a href="#" class="mock-nav-link">Docs</a>
+            </div>
+          </nav>
+          
+          <div class="mock-hero-content">
+            <h1 class="mock-title">Engineered for the Autonomous Web</h1>
+            <p class="mock-subtitle">Instantly bridge the gap between human designers and agentic software. Build, staging, and compile prompts visually.</p>
+            <div class="mock-actions">
+              <button class="mock-btn mock-btn-primary">Launch Sandbox</button>
+              <button class="mock-btn mock-btn-secondary">Read Blueprint</button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Features Grid -->
+        <section class="mock-features">
+          <h2 class="section-title">Core Capabilities</h2>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">🛡️</div>
+              <h3>Dynamic Sandbox</h3>
+              <p>Manipulate computed element layouts in hot memory before staging. Test border radii and spacing tokens.</p>
+              <button class="mock-card-btn">Explore</button>
+            </div>
+            
+            <div class="feature-card">
+              <div class="feature-icon">⚡</div>
+              <h3>Token Mapping</h3>
+              <p>Auto-approximate manual pixels to standard spacing and border design variables instantly.</p>
+              <button class="mock-card-btn">Explore</button>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">🎙️</div>
+              <h3>Multimodal Log</h3>
+              <p>Record voice comments and overlay badges on selected nodes for high-context agent execution.</p>
+              <button class="mock-card-btn">Explore</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Text Detail Card Section -->
+        <section class="mock-text-section">
+          <div class="text-detail-card">
+            <h4>System Architecture Note</h4>
+            <p>Our hybrid communication framework routes WebSocket packages directly to the Tauri companion app on localhost. This guarantees that your changes remain local, private, and extremely secure while preserving layout reactiveness.</p>
+          </div>
+        </section>
+
+        <!-- Images Grid -->
+        <section class="mock-images-section">
+          <h2 class="section-title">Staging Presets</h2>
+          <div class="images-grid">
+            <div class="mock-image-card">
+              <div class="mock-img-placeholder img-grad-1">
+                <span class="img-badge">UI Layout</span>
+              </div>
+              <div class="img-details">
+                <h5>Flexible Grid Templates</h5>
+                <p>Curated design variables ready for compile.</p>
+              </div>
+            </div>
+
+            <div class="mock-image-card">
+              <div class="mock-img-placeholder img-grad-2">
+                <span class="img-badge">Component</span>
+              </div>
+              <div class="img-details">
+                <h5>Navigation Overlays</h5>
+                <p>Polished menus and floating panels.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Right Column: Lateral Staging Panel -->
+    <aside id="main-staging-panel" class="staging-panel glass-panel">
+      <!-- Section 1: Selected Element Metadata -->
+      <section class="staging-section element-meta-section">
+        <div class="meta-section-header">
+          <h3 class="section-heading">Selected Element</h3>
+          <button id="btn-undock-panel" class="meta-action-btn" title="Desacoplar panel (Pop-out)">
+            <span>↗️</span> Desacoplar
+          </button>
+        </div>
+        <div id="meta-container" class="meta-empty">
+          No element selected. Toggle Inspection Mode and click an element inside the mock page to begin.
+        </div>
+        <div id="meta-details" class="hidden">
+          <div class="meta-row">
+            <span class="meta-label">Tag Name:</span>
+            <span id="meta-tag" class="meta-value tag-value">div</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Class List:</span>
+            <span id="meta-classes" class="meta-value class-value">.hero-content</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">CSS Selector:</span>
+            <span id="meta-selector" class="meta-value selector-value">#mock-page > header > div</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">UI Component Type:</span>
+            <span id="meta-ui-type" class="meta-value ui-type-value">⚙️ Generic Element</span>
+          </div>
+          
+          <!-- Contenedor del Árbol de Jerarquía DOM -->
+          <div class="hierarchy-header-title">DOM Hierarchy Tree</div>
+          <div id="hierarchy-tree-container" class="hierarchy-tree-container"></div>
+        </div>
+      </section>
+
+      <!-- Section 2: Visual Sandbox Sliders -->
+      <section class="staging-section properties-section">
+        <h3 class="section-heading">Visual Sandbox</h3>
+        <div class="properties-controls">
+          <!-- Padding Slider -->
+          <div class="control-group">
+            <div class="control-header">
+              <label for="slider-padding">Padding</label>
+              <div class="val-wrapper">
+                <span id="val-padding" class="control-num">0px</span>
+                <span id="token-padding" class="token-badge hidden">--spacing-xs</span>
+              </div>
+            </div>
+            <input type="range" id="slider-padding" min="0" max="100" value="0" class="slider">
+          </div>
+
+          <!-- Margin Slider -->
+          <div class="control-group">
+            <div class="control-header">
+              <label for="slider-margin">Margin</label>
+              <div class="val-wrapper">
+                <span id="val-margin" class="control-num">0px</span>
+                <span id="token-margin" class="token-badge hidden">--spacing-xs</span>
+              </div>
+            </div>
+            <input type="range" id="slider-margin" min="0" max="100" value="0" class="slider">
+          </div>
+
+          <!-- Width Slider -->
+          <div class="control-group">
+            <div class="control-header">
+              <label for="slider-width">Width</label>
+              <div class="val-wrapper">
+                <span id="val-width" class="control-num">auto</span>
+              </div>
+            </div>
+            <input type="range" id="slider-width" min="50" max="1000" value="300" class="slider">
+          </div>
+
+          <!-- Height Slider -->
+          <div class="control-group">
+            <div class="control-header">
+              <label for="slider-height">Height</label>
+              <div class="val-wrapper">
+                <span id="val-height" class="control-num">auto</span>
+              </div>
+            </div>
+            <input type="range" id="slider-height" min="10" max="800" value="100" class="slider">
+          </div>
+
+          <!-- Border Radius Slider -->
+          <div class="control-group">
+            <div class="control-header">
+              <label for="slider-borderRadius">Border Radius</label>
+              <div class="val-wrapper">
+                <span id="val-borderRadius" class="control-num">0px</span>
+                <span id="token-borderRadius" class="token-badge hidden">--border-radius-sm</span>
+              </div>
+            </div>
+            <input type="range" id="slider-borderRadius" min="0" max="100" value="0" class="slider">
+          </div>
+
+          <!-- Font Size Slider -->
+          <div class="control-group">
+            <div class="control-header">
+              <label for="slider-fontSize">Font Size</label>
+              <div class="val-wrapper">
+                <span id="val-fontSize" class="control-num">16px</span>
+              </div>
+            </div>
+            <input type="range" id="slider-fontSize" min="8" max="72" value="16" class="slider">
+          </div>
+
+          <!-- Text Content Input -->
+          <div class="control-group text-content-group">
+            <div class="control-header">
+              <label for="input-textContent">Text Content</label>
+            </div>
+            <input type="text" id="input-textContent" class="text-input" placeholder="Edit text content...">
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Color Sliders -->
+      <section class="staging-section colors-section">
+        <h3 class="section-heading">Color Staging</h3>
+        
+        <!-- Background Color -->
+        <div class="color-control-box">
+          <div class="color-title">Background Color</div>
+          <div class="hsl-sliders">
+            <div class="slider-row">
+              <span class="hsl-label">H</span>
+              <input type="range" id="bg-h" min="0" max="360" value="220" class="slider color-h-slider">
+              <span id="bg-h-val" class="hsl-val">220</span>
+            </div>
+            <div class="slider-row">
+              <span class="hsl-label">S</span>
+              <input type="range" id="bg-s" min="0" max="100" value="15" class="slider">
+              <span id="bg-s-val" class="hsl-val">15%</span>
+            </div>
+            <div class="slider-row">
+              <span class="hsl-label">L</span>
+              <input type="range" id="bg-l" min="0" max="100" value="10" class="slider">
+              <span id="bg-l-val" class="hsl-val">10%</span>
+            </div>
+          </div>
+          <div class="color-palette-repr">
+            <div id="bg-preview" class="color-preview-swatch"></div>
+            <span id="bg-hsl-string" class="hsl-string">hsl(220, 15%, 10%)</span>
+          </div>
+        </div>
+
+        <!-- Text Color -->
+        <div class="color-control-box">
+          <div class="color-title">Text Color</div>
+          <div class="hsl-sliders">
+            <div class="slider-row">
+              <span class="hsl-label">H</span>
+              <input type="range" id="text-h" min="0" max="360" value="220" class="slider color-h-slider">
+              <span id="text-h-val" class="hsl-val">220</span>
+            </div>
+            <div class="slider-row">
+              <span class="hsl-label">S</span>
+              <input type="range" id="text-s" min="0" max="100" value="10" class="slider">
+              <span id="text-s-val" class="hsl-val">10%</span>
+            </div>
+            <div class="slider-row">
+              <span class="hsl-label">L</span>
+              <input type="range" id="text-l" min="0" max="100" value="95" class="slider">
+              <span id="text-l-val" class="hsl-val">95%</span>
+            </div>
+          </div>
+          <div class="color-palette-repr">
+            <div id="text-preview" class="color-preview-swatch"></div>
+            <span id="text-hsl-string" class="hsl-string">hsl(220, 10%, 95%)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3.5: Voice Annotation -->
+      <section class="staging-section voice-annotation-section">
+        <h3 class="section-heading">Voice Annotation</h3>
+        <div class="voice-controls-box">
+          <div class="voice-actions">
+            <button id="btn-voice-record" class="voice-btn record-btn" disabled>
+              <span class="voice-icon">🎤</span> <span id="record-btn-text">Record Voice Note</span>
+            </button>
+            <button id="btn-voice-delete" class="voice-btn delete-btn hidden" title="Delete voice note">
+              🗑️
+            </button>
+          </div>
+          
+          <div id="voice-status-container" class="voice-status hidden">
+            <span class="pulse-indicator"></span>
+            <span id="voice-timer">00:00</span>
+            <span class="status-label">Recording...</span>
+          </div>
+
+          <div id="voice-audio-player-container" class="audio-player-container hidden">
+            <audio id="voice-audio-player" controls></audio>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Staged Changes List -->
+      <section class="staging-section changes-section">
+        <h3 class="section-heading">Staged Changes</h3>
+        <div id="staged-changes-list" class="changes-list">
+          <div class="no-changes">No staged changes yet. Select an element and adjust properties.</div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Floating Action Button (FAB) -->
+  <div class="fab-wrapper">
+    <button class="fab" id="fab-trigger">
+      <span class="fab-status-dot"></span>
+      <span class="fab-label">Companion Status</span>
+      <span class="fab-icon">⚡</span>
+    </button>
+    <div id="fab-menu" class="fab-menu hidden">
+      <div class="fab-menu-header">
+        <h4>Staging Quick Actions</h4>
+      </div>
+      <div class="fab-menu-items">
+        <button id="fab-btn-inspect">
+          <span class="item-icon">🔍</span> Toggle Inspector Mode
+        </button>
+        <button id="fab-btn-clear">
+          <span class="item-icon">🧹</span> Clear Staged Changes
+        </button>
+        <button id="fab-btn-copy">
+          <span class="item-icon">📋</span> Copy AI Recipe Prompt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bounding Box Annotation Modal -->
+  <div id="drawing-modal" class="modal-overlay hidden">
+    <div class="modal-content glass-panel">
+      <div class="modal-header">
+        <h4>Configure Bounding Box Insertion</h4>
+        <button id="btn-close-modal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Resolved Parent Container Selector</label>
+          <div id="modal-resolved-selector" class="resolved-selector-display"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="modal-template-select">Quick Template Preset</label>
+          <select id="modal-template-select" class="modal-select">
+            <optgroup label="Layout & Contenedores">
+              <option value="Header / Navigation Bar">🧭 Header / Navbar (Barra de Navegación)</option>
+              <option value="Hero Section">🚀 Hero Section (Banner de Inicio)</option>
+              <option value="Container / Card">📦 Contenedor / Card (Tarjeta)</option>
+              <option value="Grid / Flex Layout">🎛️ Grid / Flex Container</option>
+              <option value="Footer">🏁 Footer (Pie de Página)</option>
+            </optgroup>
+            <optgroup label="Interactivos & Formularios">
+              <option value="Button (Primary/Secondary)">🔘 Botón (Llamada a la Acción)</option>
+              <option value="Formulario (Form)">📝 Formulario Completo</option>
+              <option value="Input Field / Input Group">✏️ Input (Campo de Texto)</option>
+              <option value="Search Bar">🔍 Search Bar (Barra de Búsqueda)</option>
+              <option value="Toggle / Selector">⌥ Toggle / Checkbox</option>
+            </optgroup>
+            <optgroup label="Media & Contenidos">
+              <option value="Image Placeholder">🖼️ Image Placeholder (Imagen)</option>
+              <option value="Carrusel de imágenes">🎡 Carrusel / Slider (Carousel)</option>
+              <option value="Video Player">🎥 Video Player (Reproductor)</option>
+              <option value="Avatar / Profile Badge">👤 Avatar (Perfil de Usuario)</option>
+            </optgroup>
+            <optgroup label="Componentes de WebApp">
+              <option value="Modal / Dialog Box">💬 Modal / Ventana Emergente</option>
+              <option value="Tabs Container">📑 Contenedor de Pestañas (Tabs)</option>
+              <option value="Accordion / FAQ">📂 Acordeón desplegable (FAQ)</option>
+              <option value="Charts / Data Analytics">📊 Charts / Data Visualizer</option>
+              <option value="Data Table">📅 Data Table (Tabla de Datos)</option>
+            </optgroup>
+            <optgroup label="Otros">
+              <option value="Custom Component">⚙️ Componente Personalizado</option>
+            </optgroup>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="modal-notes-textarea">Developer Notes</label>
+          <textarea id="modal-notes-textarea" class="modal-textarea" placeholder="Escribe aquí notas de diseño o comportamiento para este componente..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cancel-modal" class="modal-btn modal-btn-secondary">Cancel</button>
+        <button id="btn-confirm-modal" class="modal-btn modal-btn-primary">Confirm Insertion</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
