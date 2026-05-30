@@ -28,8 +28,42 @@ Options:
   -h, --help     Output usage information
 
 Commands:
+  init           Initialize Visual AI Staging workspace (.ai-staging/ directories)
   dev            Start the Visual AI Staging native development server
 `);
+  process.exit(0);
+}
+
+if (command === 'init') {
+  const resolvedBase = path.resolve(__dirname);
+  const audioDir = path.join(resolvedBase, '.ai-staging', 'audio');
+  const feedbackDir = path.join(resolvedBase, '.ai-staging', 'feedback');
+  
+  try {
+    let alreadyExists = fs.existsSync(audioDir) && fs.existsSync(feedbackDir);
+    
+    fs.mkdirSync(audioDir, { recursive: true });
+    fs.mkdirSync(feedbackDir, { recursive: true });
+    
+    // Create .gitkeep to ensure empty directories are tracked by Git
+    const gitkeepAudio = path.join(audioDir, '.gitkeep');
+    const gitkeepFeedback = path.join(feedbackDir, '.gitkeep');
+    
+    if (!fs.existsSync(gitkeepAudio)) fs.writeFileSync(gitkeepAudio, '');
+    if (!fs.existsSync(gitkeepFeedback)) fs.writeFileSync(gitkeepFeedback, '');
+    
+    if (alreadyExists) {
+      console.log('Visual AI Staging environment already initialized in this workspace.');
+    } else {
+      console.log('Successfully initialized Visual AI Staging workspace!');
+      console.log('Created directories:');
+      console.log('  - .ai-staging/audio/');
+      console.log('  - .ai-staging/feedback/');
+    }
+  } catch (err) {
+    console.error('Error initializing workspace:', err.message);
+    process.exit(1);
+  }
   process.exit(0);
 }
 

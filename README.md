@@ -33,10 +33,26 @@ npm install -g visual-ai-staging
 ## Quick Start
 
 ### 1. Initialize the Staging Environment
-Navigate to your project root folder and start the native dev server:
+Navigate to your project root folder and initialize the workspace to create the local staging directories:
 
 ```bash
-# Start the Visual AI Staging local developer server
+# Prepare the Visual AI Staging local workspace
+vais init
+```
+
+*Console Output:*
+```bash
+Successfully initialized Visual AI Staging workspace!
+Created directories:
+  - .ai-staging/audio/
+  - .ai-staging/feedback/
+```
+
+### 2. Start the Development Server
+Launch the native local HTTP staging server:
+
+```bash
+# Start the local staging daemon
 vais dev
 ```
 
@@ -45,7 +61,7 @@ vais dev
 Visual AI Staging Dev Server running at http://localhost:3000/
 ```
 
-### 2. Run Visual Staging
+### 3. Run Visual Staging
 1. Open your web browser and navigate to `http://localhost:3000/`.
 2. Activate **Inspection Mode** or **Free-Zone Drawing** on the toolbar.
 3. Select elements, alter visual parameters, record voice notes, and staging your layout options.
@@ -64,6 +80,7 @@ Options:
   -h, --help     Output usage information
 
 Commands:
+  init           Initialize Visual AI Staging workspace (.ai-staging/ directories)
   dev            Start the Visual AI Staging native development server
 ```
 
