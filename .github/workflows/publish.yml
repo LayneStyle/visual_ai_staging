@@ -28,6 +28,13 @@ jobs:
       - name: Run Milestone 5 Unit Tests
         run: node verify_r4.js
 
+      - name: Sync version with Git Tag
+        run: |
+          # Extract clean version number from tag (e.g., v0.0.2 -> 0.0.2)
+          CLEAN_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          echo "Syncing package.json version to $CLEAN_VERSION"
+          npm version $CLEAN_VERSION --no-git-tag-version
+
       - name: Publish Package to NPM Registry
         run: npm publish
         env:
