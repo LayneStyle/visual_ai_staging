@@ -36,6 +36,7 @@ Thumbs.db
 .agents/
 .ai-staging/active_sessions.json
 .ai-staging/audit_reports/
+ORIGINAL_REQUEST.md
 
 # Internal Ideas, Architecture Specs & Design Documentation Folder
 documentacion/
