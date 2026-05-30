@@ -1,0 +1,10 @@
+.git/
+.gitignore
+.agents/
+documentacion/
+.ai-staging/audit_reports/
+.ai-staging/active_sessions.json
+.ai-staging/feedback/
+.ai-staging/audio/
+verify_r3.js
+verify_r4.js

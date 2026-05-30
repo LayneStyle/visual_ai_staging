@@ -11,6 +11,9 @@ const state = {
   stagedChanges: new Map() // Maps selector -> { element, originalStyles, currentStyles }
 };
 
+const isLocalServer = typeof window !== 'undefined' && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+
 /* ==========================================================================
    DESIGN TOKENS MAPPING DICTIONARIES
    ========================================================================== */
@@ -1430,13 +1433,32 @@ function saveVoiceNote(blob) {
     filename: filename
   };
 
-  // User-downloadable workspace fallback saving via programmatic click
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.href = audioUrl;
-  downloadAnchor.download = filename;
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
+  const fallbackDownload = () => {
+    // User-downloadable workspace fallback saving via programmatic click
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.href = audioUrl;
+    downloadAnchor.download = filename;
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  if (isLocalServer) {
+    fetch(`/api/save-audio?filename=${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      body: blob
+    })
+    .then(res => {
+      if (!res.ok) {
+        fallbackDownload();
+      }
+    })
+    .catch(err => {
+      fallbackDownload();
+    });
+  } else {
+    fallbackDownload();
+  }
 
   renderStagedChanges();
   updateVoicePanel();
@@ -1809,25 +1831,47 @@ function triggerFeedbackDownload(recipe) {
   const timestamp = getFormattedTimestamp();
   const filename = `${timestamp}_feedback.md`;
   
-  const blob = new Blob([recipe], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  
-  // CSP/XSS: hide and append to body off-screen programmatically
-  anchor.style.position = 'absolute';
-  anchor.style.left = '-9999px';
-  anchor.style.top = '-9999px';
-  
-  document.body.appendChild(anchor);
-  anchor.click();
-  
-  // Clean up
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-  
+  const fallbackDownload = () => {
+    const blob = new Blob([recipe], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    
+    // CSP/XSS: hide and append to body off-screen programmatically
+    anchor.style.position = 'absolute';
+    anchor.style.left = '-9999px';
+    anchor.style.top = '-9999px';
+    
+    document.body.appendChild(anchor);
+    anchor.click();
+    
+    // Clean up
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  if (isLocalServer) {
+    fetch('/api/save-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ filename: filename, content: recipe })
+    })
+    .then(res => {
+      if (!res.ok) {
+        fallbackDownload();
+      }
+    })
+    .catch(err => {
+      fallbackDownload();
+    });
+  } else {
+    fallbackDownload();
+  }
+
   return filename;
 }
 
