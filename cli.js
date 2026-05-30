@@ -71,6 +71,21 @@ if (command === 'dev') {
   const port = 3000;
   const resolvedBase = path.resolve(__dirname);
 
+  // Auto-initialize directories silently on server startup if they do not exist
+  const audioDir = path.join(resolvedBase, '.ai-staging', 'audio');
+  const feedbackDir = path.join(resolvedBase, '.ai-staging', 'feedback');
+  try {
+    fs.mkdirSync(audioDir, { recursive: true });
+    fs.mkdirSync(feedbackDir, { recursive: true });
+    
+    const gitkeepAudio = path.join(audioDir, '.gitkeep');
+    const gitkeepFeedback = path.join(feedbackDir, '.gitkeep');
+    if (!fs.existsSync(gitkeepAudio)) fs.writeFileSync(gitkeepAudio, '');
+    if (!fs.existsSync(gitkeepFeedback)) fs.writeFileSync(gitkeepFeedback, '');
+  } catch (err) {
+    console.warn('Warning: Failed to auto-initialize staging directories on startup:', err.message);
+  }
+
   const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
