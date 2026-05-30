@@ -148,6 +148,18 @@ All core web elements and visual sandbox features have been successfully develop
 
 ---
 
+### Phase 4: Multienvironment Connectivity (Ecosistema Hub-and-Spoke) (PLANNED)
+*Goal: Expand Visual AI Staging to Game Engines and external design tools using a centralized local WebSocket Hub.*
+
+| Milestone ID | Title | Status | Target Timeline / Stage | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Milestone 15** | Multi-Client WebSocket Server | *PLANNED* | Phase 4 - Stage 1 | Implement standard multi-client protocol in `vais dev` to listen to external C# / Python / GDScript inputs. |
+| **Milestone 16** | Unity Play-Mode Companion | *PLANNED* | Phase 4 - Stage 2 | Develop C# Asset package to capture uGUI events, RectTransform bounds, and apply design variables in Unity's active play session. |
+| **Milestone 17** | Godot & Unreal Engine Adapters | *PLANNED* | Phase 4 - Stage 3 | Build GDScript singleton for Godot UI/Control nodes and a C++ UMG Blueprint plugin for Unreal Engine. |
+| **Milestone 18** | External Design Tools Spokes | *PLANNED* | Phase 4 - Stage 4 | Implement local WebSocket connectors for Blender Python Addons and Figma/Canva Webview plugins. |
+
+---
+
 ## 5. Interface Contracts & API Design (app.js)
 
 The application logic inside `app.js` will export and interact through the following Javascript methods and state variables:

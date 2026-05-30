@@ -141,3 +141,92 @@ De acuerdo con el diseño de arquitectura unificado para la aplicación, se estr
         *   Para cambios lógicos o inserciones de componentes en zonas libres que requieran inteligencia semántica, inyectar el código generado por el agente LLM a través de una propuesta de parche de Git (diff) precisa sobre el código fuente local.
     5.  **Validador de Desviaciones Visuales**:
         *   Proyectar en el viewport del navegador los contornos y dimensiones ideales recopilados en la sesión de staging superpuestos sobre el DOM resultante después de aplicar los cambios en el código físico, reportando desviaciones de diseño en píxeles.
+
+---
+
+## 6. Arquitectura de Conectividad Multientorno (Ecosistema Hub-and-Spoke)
+
+Para expandir el alcance de **Visual AI Staging** más allá de la web tradicional y permitir el staging interactivo en motores de videojuegos (Unity, Unreal Engine, Godot) y suites de diseño (Blender, Canva, Figma, Affinity), el sistema se estructura bajo una arquitectura desacoplada de tipo **Hub-and-Spoke (Eje y Radios)**.
+
+```mermaid
+graph TD
+    subgraph ECOSISTEMA LOCAL (DEVELOPER MACHINE)
+        A[Hub Central: CLI vais dev] <-->|WebSocket Local Cifrado / REST| B[Radios: Clientes Adaptadores]
+    end
+
+    subgraph RADIOS (CLIENTES ADAPTADORES)
+        B1[Web Sandbox: WebExtension]
+        B2[Unity Play-Mode Companion: C# Asset]
+        B3[Godot Engine Adapter: GDScript]
+        B4[Unreal Engine Adapter: C++ / Blueprint]
+        B5[Design Tools Plugins: Figma / Canva / Blender]
+    end
+
+    A <--> B1
+    A <--> B2
+    A <--> B3
+    A <--> B4
+    A <--> B5
+
+    A -->|Escribe Localmente| C[Historial de Staging / .ai-staging/]
+    C -->|Rastreado por| D[Git Repository]
+```
+
+### 1. El Hub Central (`vais dev`)
+El daemon local de Node.js actúa como el único cerebro coordinador y persistente:
+*   **Servidor WebSocket Multi-Cliente:** Escucha en el rango de puertos `5515` a `5520`. Cualquier entorno o software con capacidad de red local puede conectarse de manera inmediata.
+*   **Gestor de Archivos Físicos:** Recibe streams binarios de audio, imágenes de "Antes/Después" y metadatos sintácticos, guardándolos ordenadamente en el subdirectorio `.ai-staging/` del proyecto.
+*   **Generador de Recetas Unificadas:** Compila las anotaciones de cualquier cliente y genera recetas en Markdown estándar, habilitando un canal consistente para asistentes de IA locales (vía MCP) o portapapeles.
+
+---
+
+### 2. Integración con Unity (Play-Mode Companion)
+El puente con Unity se implementa mediante un paquete de Asset ligero (`VisualAiStaging.unitypackage`) que opera exclusivamente durante el modo Play de desarrollo:
+
+#### Flujo de Operación Técnica
+1.  **Conexión WebSocket:** Al inicializar el modo Play, un componente singleton C# (`VaisClient.cs`) abre una conexión WebSocket con el Hub local (`ws://localhost:5515`).
+2.  **Interceptador de Eventos (UI Raycaster):** 
+    *   Para `uGUI` (Unity UI nativo), el sistema se suscribe a los eventos del `EventSystem` activo o inyecta un `GraphicRaycaster` transparente sobre el Canvas.
+    *   Al hacer clic en un componente visual del juego (botones, paneles, textos), el script de C# calcula las colisiones, detiene transitoriamente el flujo normal y extrae los metadatos de diseño del objeto seleccionado.
+3.  **Extracción de Metadatos y Propiedades:**
+    *   *Dimensiones y Posición:* Lee los valores del componente `RectTransform` (width, height, anchors, pivots, offsets locales).
+    *   *Propiedades Visuales:* Obtiene los componentes de renderizado (`UnityEngine.UI.Image` o `TextMeshProUGUI`) para extraer el color HSL, el Sprite/Asset de referencia y el contenido del texto literal.
+4.  **Transmisión de Payload JSON al Hub:**
+    ```json
+    {
+      "event": "element_selected",
+      "source": "unity_playmode",
+      "selector": "Canvas/HUD/MainMenu/PlayButton",
+      "type": "UnityEngine.UI.Button",
+      "properties": {
+        "width": 200.0,
+        "height": 60.0,
+        "color_rgba": "rgba(59, 130, 246, 1.0)",
+        "text": "START PLAY"
+      }
+    }
+    ```
+5.  **Edición en Caliente de Parámetros:**
+    *   El desarrollador interactúa con el panel lateral de staging de la web (o una GUI de superposición inyectada en Unity) para mover sliders de tamaño, cambiar colores o editar el texto.
+    *   El Hub transmite de vuelta los nuevos valores y el script de Unity aplica dinámicamente las modificaciones en el componente del objeto activo en la escena de pruebas (`RectTransform.sizeDelta`, `TextMeshPro.text`, etc.) reflejando los cambios en caliente al instante.
+6.  **Toma de Notas Rápidas y QA de Flujos:**
+    *   Si el desarrollador detecta un fallo visual o de usabilidad, puede presionar el botón de micrófono en Unity para grabar una nota de voz explicando el error (ej. *"Este botón se solapa con el HUD de vida cuando la resolución cambia"*).
+    *   El Hub recibe el audio, simula su persistencia en `.ai-staging/audio/`, e inyecta en el Markdown generado una tarjeta detallando el selector del objeto Unity, su estado "Antes/Después" y la referencia física al audio.
+
+---
+
+### 3. Adaptabilidad a otros Motores y Software (Godot, Unreal, Blender, Canva)
+La arquitectura de red del Hub permite adaptar la lógica de manera modular a cualquier aplicación que provea un sistema de extensiones o scripting:
+
+*   **Godot Engine (GDScript Adapter):** Un script `VaisClient.gd` se inyecta como un nodo auto-cargable (Singleton) en el proyecto. Utiliza la clase `WebSocketClient` nativa de Godot para comunicarse con el Hub, capturando eventos de foco en nodos del tipo `Control` (UI de Godot) o `Spatial` (colisiones 3D mediante Raycasting desde la cámara activa).
+*   **Unreal Engine (C++ / Blueprint Adapter):** Un plugin ligero de C++ expone nodos de Blueprint específicos para interceptar clics sobre interfaces UMG (Unreal Motion Graphics). Se comunica con `localhost:5515` utilizando sockets TCP nativos de Unreal.
+*   **Blender (Python Addon):** Un addon de Python (`.py`) expone un panel en el Sidebar 3D de Blender. Se suscribe a los eventos del Viewport de Blender y se comunica con el Hub local. Al seleccionar un Mesh u objeto en la escena, transmite sus coordenadas y metadatos de transformaciones, permitiendo registrar anotaciones visuales y de audio al modelar o animar.
+*   **Canva & Figma (Web Plugins):** Corren como complementos de tipo Webview dentro de los editores gráficos. Utilizan el SDK de API web del diseñador para leer la estructura de capas (Frames/Groups) seleccionadas, transmitiendo las modificaciones visuales en JSON al Hub local a través de peticiones HTTP tradicionales.
+
+---
+
+### 4. Modelo de Integración Híbrido (Monetización Premium y Código Abierto)
+El modelo de distribución de este ecosistema de adaptadores se alinea perfectamente con la estrategia de código abierto permisivo (**MIT**) y el modelo de negocio del desarrollador:
+
+1.  **Core Hub y Sandbox (Código Abierto / Licencia MIT):** La CLI `vais dev`, el servidor WebSocket y el Sandbox web básico permanecen 100% abiertos en GitHub bajo la licencia MIT. Esto maximiza la tracción orgánica de desarrolladores web, crea comunidad y genera contribuciones libres (donde otros desarrolladores pueden codificar y publicar adaptadores comunitarios para motores menos comunes como LÖVE2D o Defold).
+2.  **Adaptadores Premium (Código Cerrado / Plugins de Pago):** Las integraciones avanzadas y altamente especializadas de nivel empresarial (como el Asset para Unity en la Unity Asset Store, el plugin nativo de Unreal Engine o integraciones dedicadas de Canva corporativo) pueden distribuirse bajo licencias comerciales de código cerrado (de pago único o suscripción). Los desarrolladores de videojuegos o empresas de diseño adquieren estas licencias para automatizar sus procesos de control de calidad (QA) y flujos de revisión de diseño, beneficiándose de una herramienta altamente integrada con soporte dedicado.
