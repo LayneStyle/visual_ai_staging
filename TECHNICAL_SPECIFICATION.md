@@ -230,3 +230,61 @@ El modelo de distribución de este ecosistema de adaptadores se alinea perfectam
 
 1.  **Core Hub y Sandbox (Código Abierto / Licencia MIT):** La CLI `vais dev`, el servidor WebSocket y el Sandbox web básico permanecen 100% abiertos en GitHub bajo la licencia MIT. Esto maximiza la tracción orgánica de desarrolladores web, crea comunidad y genera contribuciones libres (donde otros desarrolladores pueden codificar y publicar adaptadores comunitarios para motores menos comunes como LÖVE2D o Defold).
 2.  **Adaptadores Premium (Código Cerrado / Plugins de Pago):** Las integraciones avanzadas y altamente especializadas de nivel empresarial (como el Asset para Unity en la Unity Asset Store, el plugin nativo de Unreal Engine o integraciones dedicadas de Canva corporativo) pueden distribuirse bajo licencias comerciales de código cerrado (de pago único o suscripción). Los desarrolladores de videojuegos o empresas de diseño adquieren estas licencias para automatizar sus procesos de control de calidad (QA) y flujos de revisión de diseño, beneficiándose de una herramienta altamente integrada con soporte dedicado.
+
+---
+
+## 7. Desafío de Adaptación Semántica y Catálogo de Integraciones
+
+### El Verdadero Desafío Técnico: La Traducción Semántica del Contexto
+Cuando no se posee acceso al código fuente interno de una aplicación propietaria (como el propio editor de Unity, Blender o Android Studio), pero sí se tiene acceso al código del proyecto en ejecución, el desafío principal radica en la **traducción sintáctica de los componentes**. 
+
+Cada entorno representa su "lienzo" y sus "elementos de interfaz" mediante estructuras de datos radicalmente dispares. La tarea del adaptador local (o *Spoke*) es actuar como un **traductor bidireccional**:
+1.  **Traducción Ascendente (Lectura):** Capturar la representación jerárquica nativa de la aplicación (ej. `RectTransform` de Unity o `Modifier` de Compose) y serializarla a una firma JSON genérica comprensible por el Hub `vais`.
+2.  **Traducción Descendente (Escritura):** Recibir las alteraciones numéricas de los sliders del Sandbox y transformarlas en llamadas de API de mutación en caliente del motor o editor específico sin romper la jerarquía del árbol de ejecución.
+
+---
+
+### Catálogo de 20 Aplicaciones Populares para Integración Vais
+
+A continuación se presenta un listado de 20 aplicaciones populares categorizadas donde la integración de **Visual AI Staging** optimiza significativamente la toma de notas de QA, el staging visual en caliente y el desarrollo asistido por IA:
+
+#### Categoría A: Motores de Videojuegos y Entornos 3D
+| # | Aplicación / Entorno | Firma Sintáctica a Traducir | Consideración Técnica de Acceso | Caso de Uso para el Desarrollador (QA y Staging) |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | **Unity (uGUI / UI Toolkit)** | Jerarquía de `GameObject` y componentes `RectTransform`, `Image`, `TextMeshPro`. | Opera mediante un C# Singleton inyectado que se activa en modo Play y captura colisiones mediante `GraphicRaycaster`. | Registro rápido de notas de voz sobre layouts de menú desalineados en modo Play; los cambios se salvan en Markdown sin perder las anotaciones al salir de la ejecución. |
+| **2** | **Unreal Engine (UMG / Slate)** | Estructura de `UWidget`, jerarquía de Canvas Panels y variables expuestas en Blueprints. | Plugin C++ nativo que utiliza listeners del Event System del HUD en ejecución para capturar colisiones de mouse. | Modificación en caliente de tamaños y colores de interfaces HUD complejas en tiempo de juego con exportación de parches de estilos a archivos `.ini` o Blueprints. |
+| **3** | **Godot Engine (Control Nodes)** | Nodos del árbol del Scene Graph de tipo `Control` (Button, Label, TextureRect). | Plugin ligero de GDScript inyectado como nodo auto-cargable (`Singleton`) que lee el árbol del viewport activo. | Ajuste visual interactivo del árbol de escenas UI en tiempo de ejecución. Permite reubicar botones y generar notas de voz para corregir posiciones. |
+| **4** | **Blender (Python Viewport)** | Árbol de objetos 3D, Meshes, materiales HSL y modificadores activos del Scene Graph. | Addon de Python (`.py`) registrado en el sidebar del Viewport 3D que consume las APIs de `bpy.context`. | Anotación espacial y grabación de notas de voz directamente asociadas a vértices o mallas 3D para indicar correcciones de topología o texturizado a otros artistas. |
+
+#### Categoría B: Desarrollo Móvil y Escritorio (Frameworks Nativos)
+| # | Aplicación / Entorno | Firma Sintáctica a Traducir | Consideración Técnica de Acceso | Caso de Uso para el Desarrollador (QA y Staging) |
+| :--- | :--- | :--- | :--- | :--- |
+| **5** | **Android Studio (Jetpack Compose)** | Árbol de funciones `@Composable` y parámetros del `Modifier` (padding, background, size). | Requiere inyección de un agente de depuración ligero en el emulador local que lea el Layout Inspector en tiempo de desarrollo. | Modificación en caliente de paddings y colores Compose en el emulador. Altera los `Modifiers` en el código de Kotlin a través del compilador AST del Hub. |
+| **6** | **Xcode (SwiftUI)** | Jerarquía de vistas SwiftUI (`VStack`, `HStack`, `Button`) y modificadores visuales en caliente. | Utiliza adaptadores sobre el simulador de iOS de Xcode que interceptan clics de depuración visual de SwiftUI. | Ajuste de variables de diseño y espaciado SwiftUI directamente en el simulador en vivo, generando diffs de Swift listos para commitear. |
+| **7** | **Flutter (Dart Widget Tree)** | Árbol de widgets de Flutter (`Container`, `Padding`, `Text`) y propiedades de `BoxDecoration`. | Se conecta al puerto de depuración local de Dart (`VM Service Protocol`) para inspeccionar y reconstruir elementos. | Modificar paddings y esquinas redondeadas en el simulador móvil en caliente de forma universal para iOS y Android con un solo slider. |
+| **8** | **React Native (JS Bridge)** | Componentes virtuales `<View>`, `<Text>` y estilos definidos en `StyleSheet.create`. | Se inyecta en el cliente de depuración JS (Metro Bundler) para modificar los objetos de estilo cargados en memoria caliente. | Probar variaciones de diseño en caliente sobre pantallas móviles físicas en desarrollo y guardar anotaciones por voz localizadas. |
+| **9** | **Electron (Desktop Apps)** | DOM estándar, selectores CSS de la interfaz Chromium y clases HTML. | Integración directa mediante content scripts en el proceso de renderizado de Electron (`preload.js`). | Staging visual y QA de voz para aplicaciones híbridas de escritorio de la misma forma exacta que en la web de producción. |
+
+#### Categoría C: Herramientas de Diseño Gráfico y Prototipado
+| # | Aplicación / Entorno | Firma Sintáctica a Traducir | Consideración Técnica de Acceso | Caso de Uso para el Desarrollador (QA y Staging) |
+| :--- | :--- | :--- | :--- | :--- |
+| **10**| **Figma (Design Layers)** | Capas de diseño, frames, componentes reutilizables, colores de relleno y bordes vectoriales. | Plugin de Figma que consume la API del editor en la sandbox de Figma, comunicándose con el Hub local vía HTTP. | Exportar guías de estilos y componentes de Figma a recetas Markdown estructuradas para que la IA los codifique desde cero. |
+| **11**| **Canva (Visual Pages)** | Objetos de Canva, imágenes, fuentes tipográficas, posiciones de capas y colores HSL. | Extensión web o App de Canva que consume el Canvas SDK del editor gráfico. | Generar un log rápido de cambios y notas de voz sobre plantillas de Canva, guardando las tareas pendientes del equipo en formato Markdown. |
+| **12**| **Adobe Illustrator / XD** | Vectores, capas artísticas, mesas de trabajo y propiedades de trazos/colores. | Scripting en JavaScript (ExtendScript) o APIs de CEP (Common Extensibility Platform) de Adobe en local. | Toma de notas técnica y control de variaciones visuales en maquetaciones vectoriales con copias en Markdown. |
+| **13**| **Affinity Designer** | Capas vectoriales, grupos, perfiles de color y curvas de dibujo. | Se apoya en carpetas calientes locales controladas por la CLI de `vais` para rastrear exportaciones de assets de diseño. | Flujo de anotación de control de calidad sobre assets de interfaz vectorizados antes de su exportación final al motor del juego. |
+
+#### Categoría D: Editores Visuales y Plataformas No-Code / CMS
+| # | Aplicación / Entorno | Firma Sintáctica a Traducir | Consideración Técnica de Acceso | Caso de Uso para el Desarrollador (QA y Staging) |
+| :--- | :--- | :--- | :--- | :--- |
+| **14**| **WordPress (Gutenberg)** | Bloques de Gutenberg, atributos JSON de bloques y clases CSS encoladas. | Extensión en JavaScript integrada en el editor de bloques Gutenberg que interactúa con la REST API de WordPress. | Captura de variaciones de bloques visuales en caliente, documentando ajustes de estilos y guardando recetas para plantillas PHP. |
+| **15**| **Webflow (Visual DOM)** | Clases de estilo de Webflow, estructuras de grids y layouts dinámicos. | Script inyectado a través de extensiones de navegador que lee el Canvas de edición de Webflow en producción. | Traducir estructuras visuales complejas armadas en Webflow a código React/Vue limpio a través del prompt Markdown compilado. |
+| **16**| **Shopify (Liquid / Sections)** | Secciones de Liquid, esquemas de configuración JSON de temas y clases CSS. | Inyección en el editor de temas visuales de Shopify (`theme-editor`). | Registrar notas de voz del cliente en tiempo real sobre la tienda en desarrollo y convertirlas en tareas de código Liquid físicas en la CLI. |
+| **17**| **Framer (React Components)** | Componentes interactivos de Framer, variables de diseño y coordenadas espaciales. | Script inyectado en el visualizador o extensión web del editor de Framer. | Captura y traducción de animaciones complejas de Framer a componentes CSS/JS limpios para producción. |
+| **18**| **Bubble (Visual Elements)** | Elementos visuales de Bubble, workflows lógicos y bases de datos asociadas. | Extensión de depuración que lee el árbol de objetos de Bubble en modo de diseño. | Log de QA rápido de comportamientos interactivos rotos en aplicaciones no-code con almacenamiento físico local. |
+
+#### Categoría E: Productividad y Colaboración Visual
+| # | Aplicación / Entorno | Firma Sintáctica a Traducir | Consideración Técnica de Acceso | Caso de Uso para el Desarrollador (QA y Staging) |
+| :--- | :--- | :--- | :--- | :--- |
+| **19**| **Miro (Board Items)** | Notas adhesivas, conectores, formas y textos de pizarra virtual. | Plugin de Miro que utiliza la API de web SDK para interactuar con tableros interactivos locales o en la nube. | Convertir requerimientos dibujados o anotados en Miro a recetas Markdown estructuradas de tareas dev en el Hub. |
+| **20**| **Notion (Blocks)** | Bloques de Notion, textos, subpáginas y bases de datos integradas. | Se comunica con la API de Notion mediante un webhook local emitido desde el Hub de `vais dev`. | Sincronizar automáticamente las recetas Markdown y grabaciones de audio generadas en el Sandbox directamente con el tablero de Notion del equipo. |
+
