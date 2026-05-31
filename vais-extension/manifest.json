@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Visual AI Staging Companion",
+  "version": "1.0.0",
+  "description": "Visual AI Staging Extension — Bridge the gap between UI design staging and AI coding assistants.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "Toggle Visual AI Staging Panel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["shadow.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

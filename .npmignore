@@ -2,9 +2,10 @@
 .gitignore
 .agents/
 documentacion/
-.ai-staging/audit_reports/
-.ai-staging/active_sessions.json
-.ai-staging/feedback/
-.ai-staging/audio/
+.ai-staging/
 verify_r3.js
 verify_r4.js
+vais-extension/
+ORIGINAL_REQUEST.md
+PROJECT.md
+prompt_draft.md

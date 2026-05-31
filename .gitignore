@@ -18,10 +18,9 @@ yarn-error.log*
 Thumbs.db
 
 # Visual AI Staging - Local Session / Generated Feedback Files
-# We ignore the generated binary WAV audio notes and compiled feedback MD files
-# but preserve the folders themselves using a .gitkeep rule if needed.
-.ai-staging/audio/*.wav
-.ai-staging/feedback/*.md
+# We ignore all generated user files recursively but preserve empty folders using .gitkeep
+.ai-staging/*
+!.ai-staging/**/.gitkeep
 
 # IDEs and Editors
 .idea/
@@ -34,9 +33,10 @@ Thumbs.db
 
 # AI Agents Temporary and Cache Files
 .agents/
-.ai-staging/active_sessions.json
-.ai-staging/audit_reports/
 ORIGINAL_REQUEST.md
+PROJECT.md
+prompt_draft.md
+
 
 # Internal Ideas, Architecture Specs & Design Documentation Folder
 documentacion/

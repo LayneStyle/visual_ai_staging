@@ -4,6 +4,41 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const os = require('os');
+const { exec } = require('child_process');
+
+function openBrowser(targetUrl) {
+  const startCommand = process.platform === 'darwin' ? 'open' :
+                       process.platform === 'win32' ? 'start ""' :
+                       'xdg-open';
+  exec(`${startCommand} "${targetUrl}"`, (err) => {
+    // Silently ignore if default browser cannot be launched
+  });
+}
+
+function resolveStoragePath(originHeader, folderType) {
+  const resolvedBase = path.resolve(__dirname);
+  let hostname = '';
+  if (originHeader) {
+    try {
+      const parsed = new URL(originHeader);
+      hostname = parsed.hostname;
+    } catch (e) {
+      if (originHeader.includes('localhost')) {
+        hostname = 'localhost';
+      } else if (originHeader.includes('127.0.0.1')) {
+        hostname = '127.0.0.1';
+      }
+    }
+  }
+
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  if (isLocal || !originHeader) {
+    return path.join(resolvedBase, '.ai-staging', folderType);
+  } else {
+    return path.join(resolvedBase, '.ai-staging', 'external', folderType);
+  }
+}
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -38,19 +73,45 @@ if (command === 'init') {
   const resolvedBase = path.resolve(__dirname);
   const audioDir = path.join(resolvedBase, '.ai-staging', 'audio');
   const feedbackDir = path.join(resolvedBase, '.ai-staging', 'feedback');
+  const extAudioDir = path.join(resolvedBase, '.ai-staging', 'external', 'audio');
+  const extFeedbackDir = path.join(resolvedBase, '.ai-staging', 'external', 'feedback');
   
   try {
-    let alreadyExists = fs.existsSync(audioDir) && fs.existsSync(feedbackDir);
+    let alreadyExists = fs.existsSync(audioDir) && fs.existsSync(feedbackDir) && fs.existsSync(extAudioDir) && fs.existsSync(extFeedbackDir);
     
     fs.mkdirSync(audioDir, { recursive: true });
     fs.mkdirSync(feedbackDir, { recursive: true });
+    fs.mkdirSync(extAudioDir, { recursive: true });
+    fs.mkdirSync(extFeedbackDir, { recursive: true });
     
     // Create .gitkeep to ensure empty directories are tracked by Git
     const gitkeepAudio = path.join(audioDir, '.gitkeep');
     const gitkeepFeedback = path.join(feedbackDir, '.gitkeep');
+    const gitkeepExtAudio = path.join(extAudioDir, '.gitkeep');
+    const gitkeepExtFeedback = path.join(extFeedbackDir, '.gitkeep');
     
     if (!fs.existsSync(gitkeepAudio)) fs.writeFileSync(gitkeepAudio, '');
     if (!fs.existsSync(gitkeepFeedback)) fs.writeFileSync(gitkeepFeedback, '');
+    if (!fs.existsSync(gitkeepExtAudio)) fs.writeFileSync(gitkeepExtAudio, '');
+    if (!fs.existsSync(gitkeepExtFeedback)) fs.writeFileSync(gitkeepExtFeedback, '');
+    
+    console.log(`
+┌───────────────────────────────────────────────────────────┐
+│                                                           │
+│   Welcome to Visual AI Staging!                           │
+│                                                           │
+│   To start staging your active layouts in hot-memory:     │
+│                                                           │
+│   1. Install the official companion browser extension:    │
+│      https://chrome.google.com/webstore                   │
+│                                                           │
+│   2. Start your local staging server by running:          │
+│      vais dev                                             │
+│                                                           │
+│   3. Click the extension icon on any page to begin.       │
+│                                                           │
+└───────────────────────────────────────────────────────────┘
+`);
     
     if (alreadyExists) {
       console.log('Visual AI Staging environment already initialized in this workspace.');
@@ -59,7 +120,12 @@ if (command === 'init') {
       console.log('Created directories:');
       console.log('  - .ai-staging/audio/');
       console.log('  - .ai-staging/feedback/');
+      console.log('  - .ai-staging/external/audio/');
+      console.log('  - .ai-staging/external/feedback/');
     }
+
+    console.log('\nOpening Chrome Web Store to download the companion extension...');
+    openBrowser('https://chrome.google.com/webstore');
   } catch (err) {
     console.error('Error initializing workspace:', err.message);
     process.exit(1);
@@ -68,27 +134,71 @@ if (command === 'init') {
 }
 
 if (command === 'dev') {
-  const port = 3000;
+  let activePort = 3000;
   const resolvedBase = path.resolve(__dirname);
 
   // Auto-initialize directories silently on server startup if they do not exist
   const audioDir = path.join(resolvedBase, '.ai-staging', 'audio');
   const feedbackDir = path.join(resolvedBase, '.ai-staging', 'feedback');
+  const extAudioDir = path.join(resolvedBase, '.ai-staging', 'external', 'audio');
+  const extFeedbackDir = path.join(resolvedBase, '.ai-staging', 'external', 'feedback');
   try {
     fs.mkdirSync(audioDir, { recursive: true });
     fs.mkdirSync(feedbackDir, { recursive: true });
+    fs.mkdirSync(extAudioDir, { recursive: true });
+    fs.mkdirSync(extFeedbackDir, { recursive: true });
     
     const gitkeepAudio = path.join(audioDir, '.gitkeep');
     const gitkeepFeedback = path.join(feedbackDir, '.gitkeep');
+    const gitkeepExtAudio = path.join(extAudioDir, '.gitkeep');
+    const gitkeepExtFeedback = path.join(extFeedbackDir, '.gitkeep');
     if (!fs.existsSync(gitkeepAudio)) fs.writeFileSync(gitkeepAudio, '');
     if (!fs.existsSync(gitkeepFeedback)) fs.writeFileSync(gitkeepFeedback, '');
+    if (!fs.existsSync(gitkeepExtAudio)) fs.writeFileSync(gitkeepExtAudio, '');
+    if (!fs.existsSync(gitkeepExtFeedback)) fs.writeFileSync(gitkeepExtFeedback, '');
   } catch (err) {
     console.warn('Warning: Failed to auto-initialize staging directories on startup:', err.message);
   }
 
   const server = http.createServer((req, res) => {
+    const origin = req.headers.origin || '*';
+
+    // CORS preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Project-Origin',
+        'Access-Control-Allow-Credentials': 'true'
+      });
+      res.end();
+      return;
+    }
+
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
+
+    // Apply CORS headers for save and session info API responses
+    if (pathname === '/api/save-audio' || pathname === '/api/save-feedback' || pathname === '/api/session-info') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Project-Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+
+    // Handle GET /api/session-info
+    if (req.method === 'GET' && pathname === '/api/session-info') {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      const projectName = path.basename(resolvedBase);
+      res.end(JSON.stringify({
+        success: true,
+        port: activePort,
+        projectName: projectName,
+        projectPath: resolvedBase
+      }));
+      return;
+    }
 
     // Handle POST /api/save-audio?filename=<encoded_filename>
     if (req.method === 'POST' && pathname === '/api/save-audio') {
@@ -103,7 +213,7 @@ if (command === 'dev') {
         return;
       }
 
-      const targetDir = path.join(resolvedBase, '.ai-staging', 'audio');
+      const targetDir = resolveStoragePath(req.headers.origin, 'audio');
       try {
         fs.mkdirSync(targetDir, { recursive: true });
       } catch (err) {
@@ -153,7 +263,7 @@ if (command === 'dev') {
             return;
           }
 
-          const targetDir = path.join(resolvedBase, '.ai-staging', 'feedback');
+          const targetDir = resolveStoragePath(req.headers.origin, 'feedback');
           try {
             fs.mkdirSync(targetDir, { recursive: true });
           } catch (err) {
@@ -232,9 +342,24 @@ if (command === 'dev') {
     res.end('405 Method Not Allowed');
   });
 
-  server.listen(port, () => {
-    console.log(`Visual AI Staging Dev Server running at http://localhost:${port}/`);
+  function startServer(p) {
+    server.listen(p, () => {
+      console.log(`Visual AI Staging Dev Server running at http://localhost:${p}/`);
+    });
+  }
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${activePort} is occupied. Retrying on next port...`);
+      activePort++;
+      startServer(activePort);
+    } else {
+      console.error('Server error:', err.message);
+      process.exit(1);
+    }
   });
+
+  startServer(activePort);
 } else {
   console.error(`Unknown command: ${command}`);
   console.error('Run "vais --help" for usage.');
