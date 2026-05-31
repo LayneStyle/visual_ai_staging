@@ -8,6 +8,8 @@ const state = {
   drawingMode: false,
   recordingMode: false,
   activeDevServerPort: 3000, // Dynamic port matching active dev session
+  activeProjectPath: "d:\\Github Repos\\Extensiones_Ideas\\visual_ai_staging", // Fallback default
+  projectName: "visual-ai-staging",
   stagedChanges: new Map() // Maps selector -> { element, originalStyles, currentStyles }
 };
 
@@ -32,6 +34,59 @@ const borderRadiusTokens = {
 /* ==========================================================================
    UTILITY FUNCTIONS
    ========================================================================== */
+function proxyFetch(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const message = {
+      action: "FETCH_PROXY",
+      url: url,
+      method: options.method || 'GET',
+      headers: options.headers || {}
+    };
+
+    const proceed = () => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (!response) {
+          reject(new Error('No response from background proxy'));
+        } else {
+          const fakeResponse = {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            text: () => Promise.resolve(response.text),
+            json: () => {
+              try {
+                return Promise.resolve(JSON.parse(response.text));
+              } catch (e) {
+                return Promise.resolve(null);
+              }
+            }
+          };
+          resolve(fakeResponse);
+        }
+      });
+    };
+
+    if (options.body) {
+      if (options.body instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          message.bodyArrayBuffer = reader.result;
+          proceed();
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(options.body);
+      } else {
+        message.bodyText = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+        proceed();
+      }
+    } else {
+      proceed();
+    }
+  });
+}
+
 function getUniqueSelector(el) {
   if (!(el instanceof Element)) return '';
   const path = [];
@@ -523,6 +578,7 @@ function selectElement(element, isChildSelection = false) {
   filterSlidersByElementType(element);
   renderHierarchyTree(state.focusRoot);
   updateVoicePanel();
+  syncPopupDOM();
 }
 
 /* ==========================================================================
@@ -680,6 +736,7 @@ function updateVoicePanel() {
     if (voiceAudioPlayerContainer) voiceAudioPlayerContainer.classList.add('hidden');
     if (voiceAudioPlayer) voiceAudioPlayer.src = '';
   }
+  syncPopupDOM();
 }
 
 function startAudioRecording() {
@@ -794,8 +851,10 @@ function saveVoiceNote(blob) {
   const timestamp = getFormattedTimestamp();
   const filename = `${timestamp}_feedback.wav`;
 
-  const absolutePath = `d:\\Github Repos\\Extensiones_Ideas\\visual_ai_staging\\.ai-staging\\audio\\${filename}`;
-  const urlPath = `file:///d:/Github%20Repos/Extensiones_Ideas/visual_ai_staging/.ai-staging/audio/${filename}`;
+  const basePath = state.activeProjectPath || "d:\\Github Repos\\Extensiones_Ideas\\visual_ai_staging";
+  const formattedBasePathForUrl = basePath.replace(/\\/g, '/');
+  const absolutePath = `${basePath}\\.ai-staging\\audio\\${filename}`;
+  const urlPath = `file:///${formattedBasePathForUrl}/.ai-staging/audio/${filename}`;
   const audioUrl = URL.createObjectURL(blob);
 
   entry.voiceNote = {
@@ -815,8 +874,8 @@ function saveVoiceNote(blob) {
     downloadAnchor.remove();
   };
 
-  // Absolute server URL prefix for save API endpoint
-  fetch(`http://localhost:${state.activeDevServerPort}/api/save-audio?filename=${encodeURIComponent(filename)}`, {
+  // Absolute server URL prefix for save API endpoint via proxy
+  proxyFetch(`http://localhost:${state.activeDevServerPort}/api/save-audio?filename=${encodeURIComponent(filename)}`, {
     method: 'POST',
     body: blob
   })
@@ -1068,6 +1127,7 @@ function renderStagedChanges() {
     container.appendChild(noChangesEl);
   }
   updateVoiceBadges();
+  syncPopupDOM();
 }
 
 function revertAllChangesFor(selector) {
@@ -1150,8 +1210,8 @@ function triggerFeedbackDownload(recipe) {
     URL.revokeObjectURL(url);
   };
 
-  // Absolute server URL prefix for save API endpoint
-  fetch(`http://localhost:${state.activeDevServerPort}/api/save-feedback`, {
+  // Absolute server URL prefix for save API endpoint via proxy
+  proxyFetch(`http://localhost:${state.activeDevServerPort}/api/save-feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1835,6 +1895,29 @@ function injectHostStyles() {
         padding: 4px;
         border-radius: 4px;
       }
+      html.vais-sidebar-html {
+        width: calc(100% - var(--vais-sidebar-width, 400px)) !important;
+        margin-right: var(--vais-sidebar-width, 400px) !important;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+      html.vais-sidebar-html header,
+      html.vais-sidebar-html [role="banner"],
+      html.vais-sidebar-html [class*="navbar" i],
+      html.vais-sidebar-html [class*="topbar" i] {
+        width: calc(100% - var(--vais-sidebar-width, 400px)) !important;
+        right: var(--vais-sidebar-width, 400px) !important;
+        left: 0 !important;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+      html.vais-resizing,
+      html.vais-resizing header,
+      html.vais-resizing [class*="navbar" i],
+      html.vais-resizing [class*="topbar" i] {
+        transition: none !important;
+      }
+      #vais-companion-root.vais-resizing-root {
+        transition: none !important;
+      }
     `;
     document.head.appendChild(styleTag);
   }
@@ -1848,8 +1931,12 @@ function toggleStagingPanel() {
   if (!companionRoot) {
     companionRoot = document.createElement('div');
     companionRoot.id = 'vais-companion-root';
-    companionRoot.style.cssText = 'position: fixed; top: 0; right: 0; width: 400px; height: 100vh; z-index: 2147483647; display: flex; flex-direction: column; box-shadow: -5px 0 25px rgba(0,0,0,0.35);';
+    companionRoot.style.cssText = 'position: fixed; top: 0; right: 0; width: var(--vais-sidebar-width, 400px); height: 100vh; z-index: 2147483647; display: flex; flex-direction: column; box-shadow: -5px 0 25px rgba(0,0,0,0.35); background: #0f172a; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);';
     document.body.appendChild(companionRoot);
+    
+    document.documentElement.style.setProperty('--vais-sidebar-width', '400px');
+    document.documentElement.classList.add('vais-sidebar-html');
+    document.body.classList.add('vais-sidebar-active');
     
     shadowRootRef = companionRoot.attachShadow({ mode: 'open' });
     
@@ -1857,6 +1944,69 @@ function toggleStagingPanel() {
     stylesheetLink.rel = 'stylesheet';
     stylesheetLink.href = chrome.runtime.getURL('shadow.css');
     shadowRootRef.appendChild(stylesheetLink);
+    
+    // Add drag-to-resize handle on the left edge of the sidebar inside the Shadow DOM
+    const resizeHandle = document.createElement('div');
+    resizeHandle.id = 'vais-resize-handle';
+    resizeHandle.style.cssText = 'position: absolute; top: 0; left: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 2147483648; background: transparent; border-left: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.2s;';
+    shadowRootRef.appendChild(resizeHandle);
+    
+    let isResizing = false;
+    
+    resizeHandle.addEventListener('mouseenter', () => {
+      if (!isResizing) {
+        resizeHandle.style.background = 'rgba(0, 149, 255, 0.25)';
+        resizeHandle.style.borderLeft = '1px solid #0095ff';
+        resizeHandle.style.boxShadow = '2px 0 8px rgba(0, 149, 255, 0.4)';
+      }
+    });
+    
+    resizeHandle.addEventListener('mouseleave', () => {
+      if (!isResizing) {
+        resizeHandle.style.background = 'transparent';
+        resizeHandle.style.borderLeft = '1px solid rgba(255, 255, 255, 0.08)';
+        resizeHandle.style.boxShadow = 'none';
+      }
+    });
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'ew-resize';
+      
+      document.documentElement.classList.add('vais-resizing');
+      document.body.classList.add('vais-resizing');
+      companionRoot.classList.add('vais-resizing-root');
+      
+      resizeHandle.style.background = 'rgba(0, 149, 255, 0.4)';
+      resizeHandle.style.borderLeft = '1px solid #0095ff';
+      resizeHandle.style.boxShadow = '2px 0 12px rgba(0, 149, 255, 0.6)';
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      let newWidth = window.innerWidth - e.clientX;
+      if (newWidth < 320) newWidth = 320;
+      if (newWidth > 800) newWidth = 800;
+      document.documentElement.style.setProperty('--vais-sidebar-width', newWidth + 'px');
+    });
+    
+    window.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        
+        document.documentElement.classList.remove('vais-resizing');
+        document.body.classList.remove('vais-resizing');
+        companionRoot.classList.remove('vais-resizing-root');
+        
+        resizeHandle.style.background = 'transparent';
+        resizeHandle.style.borderLeft = '1px solid rgba(255, 255, 255, 0.08)';
+        resizeHandle.style.boxShadow = 'none';
+      }
+    });
     
     const lateralPanel = document.createElement('div');
     lateralPanel.style.cssText = 'display: flex; flex-direction: column; height: 100%; width: 100%; overflow: hidden;';
@@ -1898,6 +2048,9 @@ function toggleStagingPanel() {
   <section class="staging-section element-meta-section">
     <div class="meta-section-header" style="display: flex; justify-content: space-between; align-items: center;">
       <h3 class="section-heading" style="margin: 0; flex: 1;">Selected Element</h3>
+      <button id="btn-undock-panel" class="meta-action-btn" title="Undock panel (Pop-out)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 3px 8px; border-radius: var(--border-radius-sm); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">
+        ↗️ Undock
+      </button>
     </div>
     <div id="meta-container" class="meta-empty">
       No element selected. Toggle Inspect Mode and click an element inside the page to begin.
@@ -2167,17 +2320,41 @@ function toggleStagingPanel() {
     const sessionSelect = shadowRootRef.getElementById('vais-active-session-select');
     if (sessionSelect) {
       sessionSelect.addEventListener('change', (e) => {
-        state.activeDevServerPort = parseInt(e.target.value);
+        const port = parseInt(e.target.value);
+        state.activeDevServerPort = port;
+        
+        proxyFetch(`http://localhost:${port}/api/session-info`, { method: 'GET' })
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.success) {
+              state.activeProjectPath = data.projectPath;
+              state.projectName = data.projectName;
+            }
+          })
+          .catch(() => {});
       });
+    }
+    
+    // Bind undock panel button
+    const btnUndock = shadowRootRef.getElementById('btn-undock-panel');
+    if (btnUndock) {
+      btnUndock.addEventListener('click', undockStagingPanel);
     }
     
     scanActiveSessions();
   } else {
     if (companionRoot.style.display === 'none') {
       companionRoot.style.display = 'flex';
+      const currentWidth = document.documentElement.style.getPropertyValue('--vais-sidebar-width') || '400px';
+      document.documentElement.style.setProperty('--vais-sidebar-width', currentWidth);
+      document.documentElement.classList.add('vais-sidebar-html');
+      document.body.classList.add('vais-sidebar-active');
       scanActiveSessions();
     } else {
       companionRoot.style.display = 'none';
+      document.documentElement.classList.remove('vais-sidebar-html');
+      document.body.classList.remove('vais-sidebar-active');
+      document.documentElement.style.removeProperty('--vais-sidebar-width');
       if (state.inspectionMode) toggleInspectionMode(false);
       if (state.drawingMode) toggleDrawingMode(false);
     }
@@ -2193,22 +2370,21 @@ function scanActiveSessions() {
   let scannedCount = 0;
 
   portsToScan.forEach(port => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 800);
-
-    fetch(`http://localhost:${port}/api/session-info`, {
-      signal: controller.signal,
+    proxyFetch(`http://localhost:${port}/api/session-info`, {
       method: 'GET'
     })
     .then(res => res.json())
     .then(data => {
-      clearTimeout(timeoutId);
       if (data && data.success) {
-        activeSessions.push({ port, projectName: data.projectName });
+        activeSessions.push({ 
+          port, 
+          projectName: data.projectName,
+          projectPath: data.projectPath
+        });
       }
     })
     .catch(() => {
-      clearTimeout(timeoutId);
+      // Background request timed out or was offline
     })
     .finally(() => {
       scannedCount++;
@@ -2225,8 +2401,10 @@ function scanActiveSessions() {
           
           const currentPort = parseInt(window.location.port);
           let selectedPort = activeSessions[0].port;
+          const sessionMap = new Map();
           
           activeSessions.forEach(session => {
+            sessionMap.set(session.port, session);
             const opt = document.createElement('option');
             opt.value = session.port.toString();
             opt.textContent = `${session.projectName} (Port ${session.port})`;
@@ -2239,6 +2417,12 @@ function scanActiveSessions() {
           
           state.activeDevServerPort = selectedPort;
           selectEl.value = selectedPort.toString();
+
+          const activeSession = sessionMap.get(selectedPort) || activeSessions[0];
+          if (activeSession) {
+            state.activeProjectPath = activeSession.projectPath;
+            state.projectName = activeSession.projectName;
+          }
         }
       }
     });
@@ -2255,3 +2439,366 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   return true;
 });
+
+let floatingWindow = null;
+
+function undockStagingPanel() {
+  if (floatingWindow && !floatingWindow.closed) {
+    floatingWindow.focus();
+    return;
+  }
+
+  const w = 450;
+  const h = 850;
+  const left = window.screenX + (window.innerWidth - w) / 2;
+  const top = window.screenY + (window.innerHeight - h) / 2;
+
+  floatingWindow = window.open('', 'vais_floating_panel', `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+
+  if (!floatingWindow) {
+    alert("Popup blocked! Please allow popups to undock the Staging Companion.");
+    return;
+  }
+
+  fetch(chrome.runtime.getURL('shadow.css'))
+    .then(res => res.text())
+    .then(cssText => {
+      if (floatingWindow.closed) return;
+      const doc = floatingWindow.document;
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Visual AI Staging - Pop-out Panel</title>
+          <style>
+            \${cssText}
+            body {
+              background: #0f172a !important;
+              color: #f8fafc !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              height: 100vh !important;
+              overflow-y: auto !important;
+            }
+            .staging-panel {
+              width: 100% !important;
+              height: 100% !important;
+              position: static !important;
+              box-shadow: none !important;
+              border: none !important;
+              background: #0f172a !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="floating-panel-target"></div>
+        </body>
+        </html>
+      `);
+      doc.close();
+
+      companionRoot.style.display = 'none';
+      document.documentElement.classList.remove('vais-sidebar-html');
+      document.body.classList.remove('vais-sidebar-active');
+      document.documentElement.style.removeProperty('--vais-sidebar-width');
+
+      const panelContent = shadowRootRef.getElementById('main-staging-panel').innerHTML;
+      const target = doc.getElementById('floating-panel-target');
+      target.innerHTML = panelContent;
+
+      const popUndockBtn = doc.getElementById('btn-undock-panel');
+      if (popUndockBtn) {
+        popUndockBtn.textContent = '📥 Dock';
+        popUndockBtn.addEventListener('click', () => {
+          floatingWindow.close();
+        });
+      }
+
+      setupPopoutWindowListeners(doc);
+
+      floatingWindow.addEventListener('beforeunload', () => {
+        dockStagingPanel();
+      });
+
+      const popCopyBtn = doc.getElementById('fab-btn-copy');
+      if (popCopyBtn) {
+        popCopyBtn.addEventListener('click', () => {
+          copyGeneratedPrompt();
+        });
+      }
+      const popClearBtn = doc.getElementById('fab-btn-clear');
+      if (popClearBtn) {
+        popClearBtn.addEventListener('click', () => {
+          clearAllStagedChanges();
+          floatingWindow.close();
+        });
+      }
+    });
+}
+
+function dockStagingPanel() {
+  if (floatingWindow) {
+    floatingWindow = null;
+  }
+  companionRoot.style.display = 'flex';
+  const currentWidth = document.documentElement.style.getPropertyValue('--vais-sidebar-width') || '400px';
+  document.documentElement.style.setProperty('--vais-sidebar-width', currentWidth);
+  document.documentElement.classList.add('vais-sidebar-html');
+  document.body.classList.add('vais-sidebar-active');
+}
+
+function setupPopoutWindowListeners(doc) {
+  const popInspectBtn = doc.getElementById('btn-inspect');
+  if (popInspectBtn) {
+    popInspectBtn.addEventListener('click', () => {
+      toggleInspectionMode();
+      popInspectBtn.classList.toggle('active', state.inspectionMode);
+      const mainInspectBtn = shadowRootRef.getElementById('btn-inspect');
+      if (mainInspectBtn) mainInspectBtn.classList.toggle('active', state.inspectionMode);
+    });
+  }
+
+  const popDrawingBtn = doc.getElementById('btn-drawing');
+  if (popDrawingBtn) {
+    popDrawingBtn.addEventListener('click', () => {
+      toggleDrawingMode();
+      popDrawingBtn.classList.toggle('active', state.drawingMode);
+      const mainDrawingBtn = shadowRootRef.getElementById('btn-drawing');
+      if (mainDrawingBtn) mainDrawingBtn.classList.toggle('active', state.drawingMode);
+    });
+  }
+
+  const sliders = [
+    { id: 'slider-padding', property: 'padding' },
+    { id: 'slider-margin', property: 'margin' },
+    { id: 'slider-width', property: 'width' },
+    { id: 'slider-height', property: 'height' },
+    { id: 'slider-borderRadius', property: 'borderRadius' },
+    { id: 'slider-fontSize', property: 'fontSize' }
+  ];
+  sliders.forEach(s => {
+    const el = doc.getElementById(s.id);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        handleSliderChange(s.property, e.target.value);
+        const mainEl = shadowRootRef.getElementById(s.id);
+        if (mainEl) mainEl.value = e.target.value;
+      });
+    }
+  });
+
+  ['bg-h', 'bg-s', 'bg-l'].forEach(id => {
+    const el = doc.getElementById(id);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const mainEl = shadowRootRef.getElementById(id);
+        if (mainEl) mainEl.value = e.target.value;
+        handleColorChange('background');
+      });
+    }
+  });
+
+  ['text-h', 'text-s', 'text-l'].forEach(id => {
+    const el = doc.getElementById(id);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const mainEl = shadowRootRef.getElementById(id);
+        if (mainEl) mainEl.value = e.target.value;
+        handleColorChange('text');
+      });
+    }
+  });
+
+  const textInput = doc.getElementById('input-textContent');
+  if (textInput) {
+    textInput.addEventListener('input', (e) => {
+      const mainEl = shadowRootRef.getElementById('input-textContent');
+      if (mainEl) mainEl.value = e.target.value;
+      updateElementTextContent(e.target.value);
+    });
+  }
+
+  const btnVoiceRecord = doc.getElementById('btn-voice-record');
+  if (btnVoiceRecord) {
+    btnVoiceRecord.addEventListener('click', () => {
+      if (state.recordingMode) {
+        stopAudioRecording();
+      } else {
+        startAudioRecording();
+      }
+    });
+  }
+  const btnVoiceDelete = doc.getElementById('btn-voice-delete');
+  if (btnVoiceDelete) {
+    btnVoiceDelete.addEventListener('click', deleteVoiceNote);
+  }
+
+  // Bind spatial annotation modal buttons inside Popout Window
+  const popCloseBtn = doc.getElementById('btn-close-modal');
+  if (popCloseBtn) {
+    popCloseBtn.addEventListener('click', () => {
+      const mainEl = shadowRootRef.getElementById('btn-close-modal');
+      if (mainEl) mainEl.click();
+    });
+  }
+
+  const popCancelBtn = doc.getElementById('btn-cancel-modal');
+  if (popCancelBtn) {
+    popCancelBtn.addEventListener('click', () => {
+      const mainEl = shadowRootRef.getElementById('btn-cancel-modal');
+      if (mainEl) mainEl.click();
+    });
+  }
+
+  const popConfirmBtn = doc.getElementById('btn-confirm-modal');
+  if (popConfirmBtn) {
+    popConfirmBtn.addEventListener('click', () => {
+      // Sync popout modal fields back to main modal inputs
+      const mainSelect = shadowRootRef.getElementById('modal-template-select');
+      const popSelect = doc.getElementById('modal-template-select');
+      if (mainSelect && popSelect) mainSelect.value = popSelect.value;
+
+      const mainNotes = shadowRootRef.getElementById('modal-notes-textarea');
+      const popNotes = doc.getElementById('modal-notes-textarea');
+      if (mainNotes && popNotes) mainNotes.value = popNotes.value;
+
+      const mainEl = shadowRootRef.getElementById('btn-confirm-modal');
+      if (mainEl) mainEl.click();
+    });
+  }
+}
+
+function syncPopupDOM() {
+  if (!floatingWindow || floatingWindow.closed) return;
+  const doc = floatingWindow.document;
+  
+  const mainMeta = shadowRootRef.getElementById('meta-container');
+  const popMeta = doc.getElementById('meta-container');
+  if (mainMeta && popMeta) {
+    popMeta.innerHTML = mainMeta.innerHTML;
+    popMeta.className = mainMeta.className;
+  }
+  
+  const mainDetails = shadowRootRef.getElementById('meta-details');
+  const popDetails = doc.getElementById('meta-details');
+  if (mainDetails && popDetails) {
+    popDetails.innerHTML = mainDetails.innerHTML;
+    popDetails.className = mainDetails.className;
+  }
+
+  // Sync staged changes list and re-bind clicks
+  const mainList = shadowRootRef.getElementById('staged-changes-list');
+  const popList = doc.getElementById('staged-changes-list');
+  if (mainList && popList) {
+    popList.innerHTML = mainList.innerHTML;
+    popList.className = mainList.className;
+    
+    const deleteBtns = popList.querySelectorAll('.revert-btn');
+    deleteBtns.forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        const mainBtns = mainList.querySelectorAll('.revert-btn');
+        if (mainBtns[idx]) mainBtns[idx].click();
+      });
+    });
+  }
+
+  // Sync DOM Hierarchy click delegates
+  const mainTree = shadowRootRef.getElementById('hierarchy-tree-container');
+  const popTree = doc.getElementById('hierarchy-tree-container');
+  if (mainTree && popTree) {
+    popTree.innerHTML = mainTree.innerHTML;
+    const mainNodes = mainTree.querySelectorAll('.tree-node');
+    const popNodes = popTree.querySelectorAll('.tree-node');
+    mainNodes.forEach((node, idx) => {
+      if (popNodes[idx]) {
+        popNodes[idx].addEventListener('click', (e) => {
+          mainNodes[idx].click();
+        });
+      }
+    });
+  }
+
+  // Sync spatial Bounding Box Modal state
+  const mainModal = shadowRootRef.getElementById('drawing-modal');
+  const popModal = doc.getElementById('drawing-modal');
+  if (mainModal && popModal) {
+    popModal.className = mainModal.className;
+    
+    const mainSel = shadowRootRef.getElementById('modal-resolved-selector');
+    const popSel = doc.getElementById('modal-resolved-selector');
+    if (mainSel && popSel) popSel.textContent = mainSel.textContent;
+  }
+
+  // Sync all range/text/select inputs in real-time
+  const mainInputs = shadowRootRef.querySelectorAll('input, select, textarea');
+  const popInputs = doc.querySelectorAll('input, select, textarea');
+  mainInputs.forEach((input, idx) => {
+    if (popInputs[idx] && popInputs[idx].id !== 'vais-active-session-select') {
+      popInputs[idx].value = input.value;
+    }
+  });
+
+  // Sync control display values, HSL labels, and token badges
+  const classesToSync = ['.control-num', '.token-badge', '.hsl-val', '.hsl-string'];
+  classesToSync.forEach(cls => {
+    const mainEls = shadowRootRef.querySelectorAll(cls);
+    const popEls = doc.querySelectorAll(cls);
+    mainEls.forEach((el, idx) => {
+      if (popEls[idx]) {
+        popEls[idx].textContent = el.textContent;
+        popEls[idx].className = el.className;
+      }
+    });
+  });
+
+  // Sync custom element visibility tokens (filtered properties wrapper boxes)
+  const mainControlGroups = shadowRootRef.querySelectorAll('.control-group, .color-control-box');
+  const popControlGroups = doc.querySelectorAll('.control-group, .color-control-box');
+  mainControlGroups.forEach((group, idx) => {
+    if (popControlGroups[idx]) {
+      popControlGroups[idx].className = group.className;
+    }
+  });
+
+  // Sync HSL visual color swatch displays
+  ['bg-preview', 'text-preview'].forEach(id => {
+    const mainPrev = shadowRootRef.getElementById(id);
+    const popPrev = doc.getElementById(id);
+    if (mainPrev && popPrev) {
+      popPrev.style.backgroundColor = mainPrev.style.backgroundColor;
+    }
+  });
+
+  const mainBtnText = shadowRootRef.getElementById('record-btn-text');
+  const popBtnText = doc.getElementById('record-btn-text');
+  if (mainBtnText && popBtnText) popBtnText.textContent = mainBtnText.textContent;
+
+  const mainRecordBtn = shadowRootRef.getElementById('btn-voice-record');
+  const popRecordBtn = doc.getElementById('btn-voice-record');
+  if (mainRecordBtn && popRecordBtn) {
+    popRecordBtn.disabled = mainRecordBtn.disabled;
+    popRecordBtn.className = mainRecordBtn.className;
+  }
+
+  const mainVoiceDel = shadowRootRef.getElementById('btn-voice-delete');
+  const popVoiceDel = doc.getElementById('btn-voice-delete');
+  if (mainVoiceDel && popVoiceDel) {
+    popVoiceDel.className = mainVoiceDel.className;
+  }
+
+  const mainStatus = shadowRootRef.getElementById('voice-status-container');
+  const popStatus = doc.getElementById('voice-status-container');
+  if (mainStatus && popStatus) {
+    popStatus.className = mainStatus.className;
+    popStatus.innerHTML = mainStatus.innerHTML;
+  }
+
+  const mainPlayer = shadowRootRef.getElementById('voice-audio-player-container');
+  const popPlayer = doc.getElementById('voice-audio-player-container');
+  if (mainPlayer && popPlayer) {
+    popPlayer.className = mainPlayer.className;
+    popPlayer.innerHTML = mainPlayer.innerHTML;
+  }
+}

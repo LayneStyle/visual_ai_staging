@@ -17,7 +17,7 @@ function openBrowser(targetUrl) {
 }
 
 function resolveStoragePath(originHeader, folderType) {
-  const resolvedBase = path.resolve(__dirname);
+  const resolvedBase = process.cwd();
   let hostname = '';
   if (originHeader) {
     try {
@@ -70,7 +70,7 @@ Commands:
 }
 
 if (command === 'init') {
-  const resolvedBase = path.resolve(__dirname);
+  const resolvedBase = process.cwd();
   const audioDir = path.join(resolvedBase, '.ai-staging', 'audio');
   const feedbackDir = path.join(resolvedBase, '.ai-staging', 'feedback');
   const extAudioDir = path.join(resolvedBase, '.ai-staging', 'external', 'audio');
@@ -135,7 +135,7 @@ if (command === 'init') {
 
 if (command === 'dev') {
   let activePort = 3000;
-  const resolvedBase = path.resolve(__dirname);
+  const resolvedBase = process.cwd();
 
   // Auto-initialize directories silently on server startup if they do not exist
   const audioDir = path.join(resolvedBase, '.ai-staging', 'audio');
