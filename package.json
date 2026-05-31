@@ -6,5 +6,8 @@
   "main": "app.js",
   "bin": {
     "vais": "./cli.js"
+  },
+  "dependencies": {
+    "visual-ai-staging": "^0.0.7"
   }
 }

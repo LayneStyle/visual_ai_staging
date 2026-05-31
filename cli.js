@@ -65,6 +65,7 @@ Options:
 Commands:
   init           Initialize Visual AI Staging workspace (.ai-staging/ directories)
   dev            Start the Visual AI Staging native development server
+  update         Update the tool globally to the latest version
 `);
   process.exit(0);
 }
@@ -133,7 +134,27 @@ if (command === 'init') {
   process.exit(0);
 }
 
-if (command === 'dev') {
+if (command === 'update') {
+  console.log('\nUpdating Visual AI Staging globally to the latest version...');
+  const updateCmd = 'npm install -g visual-ai-staging@latest';
+  console.log(`Running: ${updateCmd}\n`);
+  
+  exec(updateCmd, (err, stdout, stderr) => {
+    if (err) {
+      console.error('\n❌ Update failed! Please check your internet connection or write permissions.');
+      console.error('If you are on macOS/Linux, you might need to run with sudo:');
+      console.error('  sudo npm install -g visual-ai-staging@latest\n');
+      console.error(err.message);
+      process.exit(1);
+    }
+    
+    if (stdout) console.log(stdout);
+    if (stderr && !stderr.includes('npm warn')) console.log(stderr);
+    
+    console.log('✨ Successfully updated Visual AI Staging to the latest version globally!\n');
+    process.exit(0);
+  });
+} else if (command === 'dev') {
   let activePort = 3000;
   const resolvedBase = process.cwd();
 
